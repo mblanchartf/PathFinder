@@ -8,8 +8,8 @@ from sklearn.cross_validation import train_test_split
 from keras.utils import np_utils
 from keras.models import Sequential
 from keras.layers.core import Dense, Dropout, Activation, Flatten
-from keras.layers.convolutional import MaxPooling2D, Conv2D
-# from keras.optimizers import SGD, RMSprop, adam
+from keras.layers.convolutional import MaxPooling2D, Conv2D, ZeroPadding2D
+from keras.optimizers import SGD, RMSprop, adam
 from keras import backend as K
 K.set_image_dim_ordering('th')
 
@@ -32,7 +32,7 @@ img_list = os.listdir(data_path)
 
 rows = 300
 cols = 300
-channels = 1
+channels = 3
 n_epoch = 20
 
 img_data_list = []
@@ -42,7 +42,7 @@ for dataset in data_dir_list:
     print('Loaded the images of dataset-' + '{}\n'.format(dataset))
     for img in img_list:
         input_img = cv2.imread(data_path + '/' + dataset + '/' + img)
-        input_img = cv2.cvtColor(input_img, cv2.COLOR_BGR2GRAY)
+        #input_img = cv2.cvtColor(input_img, cv2.COLOR_BGR2GRAY)
         img_data_list.append(input_img)
 
 img_data = np.array(img_data_list)
@@ -85,28 +85,53 @@ X_train, X_test, y_train, y_test = train_test_split(x, y,
 input_shape = img_data[0].shape
 
 model = Sequential()
+model.add(ZeroPadding2D((1,1),input_shape=input_shape))
+model.add(Conv2D(64, 3, 3, activation='relu'))
+model.add(ZeroPadding2D((1,1)))
+model.add(Conv2D(64, 3, 3, activation='relu'))
+model.add(MaxPooling2D((2,2), strides=(2,2)))
 
-model.add(Conv2D(32, 3, 3, border_mode='same', input_shape=input_shape))
-model.add(Activation('relu'))
-model.add(Conv2D(32, 3, 3))
-model.add(Activation('relu'))
-model.add(MaxPooling2D(pool_size=(2, 2)))
-model.add(Dropout(0.5))
+model.add(ZeroPadding2D((1,1)))
+model.add(Conv2D(128, 3, 3, activation='relu'))
+model.add(ZeroPadding2D((1,1)))
+model.add(Conv2D(128, 3, 3, activation='relu'))
+model.add(MaxPooling2D((2,2), strides=(2,2)))
 
-model.add(Conv2D(64, 3, 3))
-model.add(Activation('relu'))
-model.add(MaxPooling2D(pool_size=(2, 2)))
-model.add(Dropout(0.5))
+model.add(ZeroPadding2D((1,1)))
+model.add(Conv2D(256, 3, 3, activation='relu'))
+model.add(ZeroPadding2D((1,1)))
+model.add(Conv2D(256, 3, 3, activation='relu'))
+model.add(ZeroPadding2D((1,1)))
+model.add(Conv2D(256, 3, 3, activation='relu'))
+model.add(MaxPooling2D((2,2), strides=(2,2)))
+
+model.add(ZeroPadding2D((1,1)))
+model.add(Conv2D(512, 3, 3, activation='relu'))
+model.add(ZeroPadding2D((1,1)))
+model.add(Conv2D(512, 3, 3, activation='relu'))
+model.add(ZeroPadding2D((1,1)))
+model.add(Conv2D(512, 3, 3, activation='relu'))
+model.add(MaxPooling2D((2,2), strides=(2,2)))
+
+model.add(ZeroPadding2D((1,1)))
+model.add(Conv2D(512, 3, 3, activation='relu'))
+model.add(ZeroPadding2D((1,1)))
+model.add(Conv2D(512, 3, 3, activation='relu'))
+model.add(ZeroPadding2D((1,1)))
+model.add(Conv2D(512, 3, 3, activation='relu'))
+model.add(MaxPooling2D((2,2), strides=(2,2)))
 
 model.add(Flatten())
-model.add(Dense(64))
-model.add(Activation('relu'))
+model.add(Dense(4096, activation='relu'))
 model.add(Dropout(0.5))
-model.add(Dense(num_classes))
-model.add(Activation('softmax'))
+model.add(Dense(4096, activation='relu'))
+model.add(Dropout(0.5))
+model.add(Dense(num_classes, activation='softmax'))
+
+sgd = SGD(lr=0.1, decay=1e-6, momentum=0.9, nesterov=True)
 
 model.compile(loss='categorical_crossentropy',
-              optimizer='rmsprop',
+              optimizer=sgd,
               metrics=["accuracy"])
 
 # Viewing model_configuration
@@ -122,7 +147,7 @@ model.layers[0].trainable'''
 
 # Training
 hist = model.fit(X_train, y_train,
-                 batch_size=16,
+                 batch_size=32,
                  nb_epoch=n_epoch, verbose=1,
                  validation_data=(X_test, y_test))
 
@@ -133,5 +158,4 @@ timestr = time.strftime("%Y%m%d%H%M%S_")
 
 model.save(data_path + timestr + 'model_keras_path.hdf5')
 
-print('Model saved at ' + data_path + ' named '
-      + timestr + 'model_keras_path.hdf5')
+print('Model saved at ' + data_path + ' named ' + timestr + 'model_keras_path.hdf5')
